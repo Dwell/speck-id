@@ -1,0 +1,53 @@
+{
+  "name": "speck-id",
+  "version": "1.0.0",
+  "description": "distributed id generator",
+  "main": "dist/index.js",
+  "scripts": {
+    "compile": "node_modules/.bin/babel --copy-files -s -d dist/ src/",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwell/speck-id.git"
+  },
+  "keywords": [
+    "id"
+  ],
+  "author": "wing.lian@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Dwell/speck-id/issues"
+  },
+  "homepage": "https://github.com/Dwell/speck-id#readme",
+  "dependencies": {
+    "any-promise": "^1.3.0",
+    "babel-runtime": "^6.11.6",
+    "biguint-format": "^1.0.0",
+    "bluebird": "^3.4.3",
+    "deasync": "^0.1.7",
+    "lodash.defaults": "^4.2.0",
+    "lodash.mapvalues": "^4.6.0",
+    "lodash.zip": "^4.2.0",
+    "request": "^2.74.0",
+    "request-promise-any": "^1.0.3"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.14.0",
+    "babel-core": "^6.14.0",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.14.0",
+    "babel-plugin-transform-runtime": "^6.12.0",
+    "babel-preset-es2015": "^6.14.0",
+    "babel-preset-stage-0": "^6.5.0"
+  },
+  "babel": {
+    "presets": [
+      "es2015",
+      "stage-0"
+    ],
+    "plugins": [
+      "transform-es2015-modules-commonjs",
+      "transform-runtime"
+    ]
+  }
+}
