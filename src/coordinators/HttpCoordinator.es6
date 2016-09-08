@@ -33,9 +33,15 @@ const HttpCoordinator = function(options, dateInstance = null) {
   this.dateInstance = dateInstance || Date;
   this.onChangeCallback = null;
 
-  this.coordinate = (onChangeCallback) => {
+  this.coordinate = (onChangeCallback, onErrorCallback = null) => {
     this.onChangeCallback = onChangeCallback;
-    return this.tryHeartbeat();
+    this.onErrorCallback = onErrorCallback;
+    return this.tryHeartbeat().catch(err => {
+      console.error(err);
+      if (this.onErrorCallback) {
+        this.onErrorCallback(err);
+      }
+    });
   };
 
   this.postToHttpCoordinator = () => {
@@ -79,7 +85,7 @@ const HttpCoordinator = function(options, dateInstance = null) {
     if ((this.dateInstance.now() - this.lastHeartbeatTs) >= this.options.heartbeatTtl) {
       return this.runHeartbeat();
     }
-    return Promise.resolve();
+    return Promise.resolve(true);
   };
 
   this.runHeartbeat = () => {
@@ -87,9 +93,8 @@ const HttpCoordinator = function(options, dateInstance = null) {
       this.coordination = coordination;
       this.lastHeartbeatTs = this.dateInstance.now();
       this.onChangeCallback(null, this.coordination);
-    }).catch(err => {
-      console.error(err);
-    });
+      return true;
+    })
   };
 };
 

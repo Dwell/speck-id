@@ -168,7 +168,7 @@ Speck.prototype.buildId = function(time, sequence, totalBytes) {
 
 Speck.prototype.initCoordination = function (CoordinatorInstance) {
   if (CoordinatorInstance) {
-    CoordinatorInstance.coordinate(this.coordinationUpdated.bind(this));
+    CoordinatorInstance.coordinate(this.coordinationUpdated.bind(this), this.coordinationFailed.bind(this));
   } else if (typeof this.options.machineId !== 'undefined') {
     this.machineId = (this.options.machineId & this.fieldBitMasks.m);
   } else if (typeof this.options.datacenterId !== 'undefined' || typeof this.options.workerId !== 'undefined') {
@@ -189,6 +189,13 @@ Speck.prototype.coordinationUpdated = function (err, coordination) {
     this.machineId = (datacenter << this.fieldBits.w) | worker;
   } else {
     this.machineId = coordination;
+  }
+};
+
+Speck.prototype.coordinationFailed = function(err) {
+  if (this.options.fallback && this.options.fallback.coordinator) {
+    let CoordinatorInstance = this.options.fallback.coordinator;
+    CoordinatorInstance.coordinate(this.coordinationUpdated.bind(this));
   }
 };
 
