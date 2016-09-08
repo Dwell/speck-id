@@ -78,7 +78,10 @@ const Speck = function (options) {
       const id = self.buildId(time, sequence, totalBytes);
 
       if (CoordinatorInstance && typeof CoordinatorInstance.tryHeartbeat === 'function') {
-        CoordinatorInstance.tryHeartbeat();
+        CoordinatorInstance.tryHeartbeat().catch(err => {
+          console.error('tryHeartbeat');
+          console.error(err);
+        });
       }
 
       return Promise.resolve(id);
@@ -97,10 +100,16 @@ const Speck = function (options) {
     },
     generate: (format = 'dec') => { // synchronous ID generation
       let id;
+      let done = false;
       itr().then(_id => {
         id = _id;
+        done = true;
+      }).catch(err => {
+        console.error(err);
+        done = true;
       });
-      while(id === undefined) {
+
+      while(done === false) {
         deasync.runLoopOnce();
       }
 
