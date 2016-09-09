@@ -80,14 +80,16 @@ const HttpCoordinator = function(options, dateInstance = null) {
     rpOptions.body.signature = this.signRequest(rpOptions.body.request);
 
     return rp(rpOptions).then(parsedBody => {
-      console.log('postToHttpCoordinator rp resolved!');
-      console.log(parsedBody);
       return this.parseCoordinationResponse(parsedBody);
     });
   };
 
+  this.shouldRunHeartbeat = () => {
+    return ((this.dateInstance.now() - this.lastHeartbeatTs) >= this.options.heartbeatTtl);
+  };
+
   this.tryHeartbeat = () => {
-    if ((this.dateInstance.now() - this.lastHeartbeatTs) >= this.options.heartbeatTtl) {
+    if (this.shouldRunHeartbeat()) {
       return this.runHeartbeat();
     }
     return Promise.resolve(true);
@@ -97,7 +99,6 @@ const HttpCoordinator = function(options, dateInstance = null) {
     // do this so we avoid multiple attempts
     this.lastHeartbeatTs = this.dateInstance.now();
     return this.postToHttpCoordinator().then(coordination => {
-      console.log(coordination);
       this.coordination = coordination;
       // then set it here again for a true idea of when we should wait
       this.lastHeartbeatTs = this.dateInstance.now();
