@@ -52,24 +52,25 @@ const Speck = function (options) {
     let sequence = 0;
     let overflow = false;
     let lastTime = DateInstance.now() - self.options.epoch;
+    let waitDelayExponent = 0;
 
     return () => {
+      waitDelayExponent = Math.min(waitDelayExponent, 10);
       let time = (DateInstance.now() - self.options.epoch);
 
       if (self.machineId === null) {
-        console.log('waitRetry due to missing machineId');
-        return waitRetry();
+        return waitRetry(Math.pow(2, waitDelayExponent++));
       }
       if (time === lastTime) {
         if (overflow) {
           console.log('waitRetry due to previous overflow');
-          return waitRetry();
+          return waitRetry(Math.pow(2, waitDelayExponent++));
         }
         sequence = (sequence + 1) & self.fieldBitMasks.s;
         if (sequence === 0) {
           overflow = true;
           console.log('waitRetry due to new sequence overflow');
-          return waitRetry();
+          return waitRetry(Math.pow(2, waitDelayExponent++));
         }
       } else {
         console.log('resetting sequence');
@@ -77,6 +78,7 @@ const Speck = function (options) {
         sequence = 0;
       }
       lastTime = time;
+      waitDelayExponent = 0;
 
       console.log(time);
       console.log(sequence);
@@ -92,17 +94,29 @@ const Speck = function (options) {
         }
       });
 
+      console.log('buildId returned: ' + id);
+
       return Promise.resolve(id);
     }
   })();
 
-  const waitRetry = () => {
-    return Promise.delay(1).then(() => {
+  const waitRetry = (delay = 1) => {
+    console.log('wait retry delay: ' + delay);
+    return Promise.delay(delay).then(() => {
       return SpeckIdYield.next();
     })
   };
 
   let c = 0;
+
+  let waitNext = deasync((done) => {
+    itr().then(_id => {
+      done(null, _id);
+    }).catch(err => {
+      done(err);
+    });
+  });
+
   const SpeckIdYield = {
     next: () => { // async Promise ID generation
       return itr().then(_id => {
@@ -115,19 +129,7 @@ const Speck = function (options) {
       let id;
       let done = false;
       console.log('start ' + y);
-      itr().then(_id => {
-        console.log('itr() returned id: ' + _id);
-        id = _id;
-        done = true;
-      }).catch(err => {
-        console.error(err);
-        done = true;
-      });
-
-      while(done === false) {
-        deasync.runLoopOnce();
-      }
-
+      id = waitNext();
 
       if (format === 'raw') {
         return id;
@@ -137,13 +139,18 @@ const Speck = function (options) {
     }
   };
 
+  (deasync((done) => {
+    this.initCoordination(CoordinatorInstance).then(() => {
+      done(null, true);
+    });
+  }))();
   // this.initCoordination(CoordinatorInstance);
   // setTimeout(() => {
   //   this.initCoordination(CoordinatorInstance);
   // }, 1);
-  process.nextTick(() => {
-    this.initCoordination(CoordinatorInstance);
-  });
+  // process.nextTick(() => {
+  //   this.initCoordination(CoordinatorInstance);
+  // });
 
   return SpeckIdYield;
 };
@@ -197,13 +204,14 @@ Speck.prototype.buildId = function(time, sequence, totalBytes) {
     leftoverFieldValue = fieldValue;
   });
 
-  console.log('buildId finishgin');
+  console.log('buildId finishgin: ' + id);
+
   return id;
 };
 
 Speck.prototype.initCoordination = function (CoordinatorInstance) {
   if (CoordinatorInstance) {
-    CoordinatorInstance.coordinate(this.coordinationUpdated.bind(this), this.coordinationFailed.bind(this));
+    return CoordinatorInstance.coordinate(this.coordinationUpdated.bind(this), this.coordinationFailed.bind(this), 1000);
   } else if (typeof this.options.machineId !== 'undefined') {
     this.machineId = (this.options.machineId & this.fieldBitMasks.m);
   } else if (typeof this.options.datacenterId !== 'undefined' || typeof this.options.workerId !== 'undefined') {
@@ -213,6 +221,7 @@ Speck.prototype.initCoordination = function (CoordinatorInstance) {
   } else {
     this.machineId = 0;
   }
+  return Promsie.resolve();
 };
 
 Speck.prototype.coordinationUpdated = function (err, coordination) {
