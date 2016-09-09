@@ -1,6 +1,6 @@
 {
   "name": "speck-id",
-  "version": "1.0.4",
+  "version": "1.0.15",
   "description": "distributed id generator",
   "main": "dist/index.js",
   "scripts": {

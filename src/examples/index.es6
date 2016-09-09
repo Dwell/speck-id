@@ -32,3 +32,10 @@ speckOptions.coordinator = new HttpCoordinator(httpCoordinatorOptions);
 var speckId = new Speck(speckOptions);
 
 console.log(speckId.generate());
+console.log(speckId.generate());
+console.log(speckId.generate());
+console.log(speckId.generate());
+console.log(speckId.generate());
+console.log(speckId.generate());
+console.log(speckId.generate());
+console.log(speckId.generate());

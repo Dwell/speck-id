@@ -6,6 +6,8 @@ import deasync from 'deasync';
 import intFormat from 'biguint-format';
 
 const Speck = function (options) {
+  const self = this;
+
   this.machineId = null;
 
   this.options = Object.assign({}, options);
@@ -45,9 +47,6 @@ const Speck = function (options) {
 
   this.fieldBits.m = this.fieldBits.dc + this.fieldBits.w;
   this.fieldBitMasks = mapValues(this.fieldBits, bits => Math.pow(2, bits) - 1);
-  this.initCoordination(CoordinatorInstance);
-
-  const self = this;
 
   const itr = (() => {
     let sequence = 0;
@@ -58,31 +57,40 @@ const Speck = function (options) {
       let time = (DateInstance.now() - self.options.epoch);
 
       if (self.machineId === null) {
+        console.log('waitRetry due to missing machineId');
         return waitRetry();
       }
       if (time === lastTime) {
         if (overflow) {
+          console.log('waitRetry due to previous overflow');
           return waitRetry();
         }
         sequence = (sequence + 1) & self.fieldBitMasks.s;
         if (sequence === 0) {
           overflow = true;
+          console.log('waitRetry due to new sequence overflow');
           return waitRetry();
         }
       } else {
+        console.log('resetting sequence');
         overflow = false;
         sequence = 0;
       }
       lastTime = time;
 
+      console.log(time);
+      console.log(sequence);
+      console.log(totalBytes);
       const id = self.buildId(time, sequence, totalBytes);
 
-      if (CoordinatorInstance && typeof CoordinatorInstance.tryHeartbeat === 'function') {
-        CoordinatorInstance.tryHeartbeat().catch(err => {
-          console.error('tryHeartbeat');
-          console.error(err);
-        });
-      }
+      process.nextTick(() => {
+        if (CoordinatorInstance && typeof CoordinatorInstance.tryHeartbeat === 'function') {
+          CoordinatorInstance.tryHeartbeat().catch(err => {
+            console.error('tryHeartbeat');
+            console.error(err);
+          });
+        }
+      });
 
       return Promise.resolve(id);
     }
@@ -94,14 +102,21 @@ const Speck = function (options) {
     })
   };
 
+  let c = 0;
   const SpeckIdYield = {
     next: () => { // async Promise ID generation
-      return itr();
+      return itr().then(_id => {
+        console.log('itr() returned id: ' + _id);
+        return _id;
+      });
     },
     generate: (format = 'dec') => { // synchronous ID generation
+      let y = c++;
       let id;
       let done = false;
+      console.log('start ' + y);
       itr().then(_id => {
+        console.log('itr() returned id: ' + _id);
         id = _id;
         done = true;
       }).catch(err => {
@@ -113,6 +128,7 @@ const Speck = function (options) {
         deasync.runLoopOnce();
       }
 
+
       if (format === 'raw') {
         return id;
       } else {
@@ -120,6 +136,15 @@ const Speck = function (options) {
       }
     }
   };
+
+  // this.initCoordination(CoordinatorInstance);
+  // setTimeout(() => {
+  //   this.initCoordination(CoordinatorInstance);
+  // }, 1);
+  process.nextTick(() => {
+    this.initCoordination(CoordinatorInstance);
+  });
+
   return SpeckIdYield;
 };
 
@@ -172,6 +197,7 @@ Speck.prototype.buildId = function(time, sequence, totalBytes) {
     leftoverFieldValue = fieldValue;
   });
 
+  console.log('buildId finishgin');
   return id;
 };
 
@@ -190,6 +216,8 @@ Speck.prototype.initCoordination = function (CoordinatorInstance) {
 };
 
 Speck.prototype.coordinationUpdated = function (err, coordination) {
+  console.log('coordinationUpdated callback called');
+  console.log(arguments);
   if (coordination.machineId) {
     this.machineId = coordination.machineId;
   } else if (typeof coordination.datacenterId !== 'undefined' && typeof coordination.workerId !== 'undefined') {

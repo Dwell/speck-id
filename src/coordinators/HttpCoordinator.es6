@@ -33,15 +33,18 @@ const HttpCoordinator = function(options, dateInstance = null) {
   this.dateInstance = dateInstance || Date;
   this.onChangeCallback = null;
 
-  this.coordinate = (onChangeCallback, onErrorCallback = null) => {
+  this.coordinate = (onChangeCallback, onErrorCallback = null, timeout = 15000) => {
     this.onChangeCallback = onChangeCallback;
     this.onErrorCallback = onErrorCallback;
-    return this.tryHeartbeat().catch(err => {
-      console.error(err);
-      if (this.onErrorCallback) {
-        this.onErrorCallback(err);
-      }
-    });
+    return this
+      .tryHeartbeat()
+      .timeout(timeout, 'HttpCoordinator timed out: ' + timeout + 'ms')
+      .catch(err => {
+        console.error(err);
+        if (this.onErrorCallback) {
+          this.onErrorCallback(err);
+        }
+      });
   };
 
   this.postToHttpCoordinator = () => {
@@ -77,6 +80,8 @@ const HttpCoordinator = function(options, dateInstance = null) {
     rpOptions.body.signature = this.signRequest(rpOptions.body.request);
 
     return rp(rpOptions).then(parsedBody => {
+      console.log('postToHttpCoordinator rp resolved!');
+      console.log(parsedBody);
       return this.parseCoordinationResponse(parsedBody);
     });
   };
@@ -89,10 +94,16 @@ const HttpCoordinator = function(options, dateInstance = null) {
   };
 
   this.runHeartbeat = () => {
+    // do this so we avoid multiple attempts
+    this.lastHeartbeatTs = this.dateInstance.now();
     return this.postToHttpCoordinator().then(coordination => {
+      console.log(coordination);
       this.coordination = coordination;
+      // then set it here again for a true idea of when we should wait
       this.lastHeartbeatTs = this.dateInstance.now();
-      this.onChangeCallback(null, this.coordination);
+      process.nextTick(() => {
+        this.onChangeCallback(null, this.coordination);
+      });
       return true;
     })
   };
