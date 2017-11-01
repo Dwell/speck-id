@@ -13,6 +13,7 @@ const HttpCoordinator = function(options, dateInstance = null) {
   defaults(this.options, {
     appId: null,
     privateKeyFile: null,
+    privateKey: null,
     heartbeatTtl: 300000, // 5min in ms
     coordinatorUrl: null,
     datacenterId: null,
@@ -25,10 +26,10 @@ const HttpCoordinator = function(options, dateInstance = null) {
   if (!this.options.appId) {
     throw new Error('Missing `appId`');
   }
-  if (!this.options.privateKeyFile) {
+  if (!this.options.privateKeyFile && !this.options.privateKey) {
     throw new Error('Missing `privateKeyFile`');
   }
-  this.privateKey = fs.readFileSync(this.options.privateKeyFile);
+  this.privateKey = this.options.privateKey || fs.readFileSync(this.options.privateKeyFile);
 
   this.dateInstance = dateInstance || Date;
   this.onChangeCallback = null;

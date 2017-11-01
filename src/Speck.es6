@@ -2,12 +2,9 @@ import defaults from 'lodash.defaults';
 import mapValues from 'lodash.mapvalues';
 import zip from 'lodash.zip';
 import Promise from 'any-promise';
-import deasync from 'deasync';
 import intFormat from 'biguint-format';
 
 const Speck = function (options) {
-  const self = this;
-
   this.machineId = null;
 
   this.options = Object.assign({}, options);
@@ -106,21 +103,13 @@ const Speck = function (options) {
     next: () => { // async Promise ID generation
       return Promise.resolve(itr());
     },
-    generate: (format = 'dec') => { // synchronous ID generation
+    generate: (format = 'dec') => { // async formatted ID generation
       let id = itr();
 
-      if (Promise.resolve(id) == id) { // it's a promise, deasync it
-        id = (deasync((idPromise, done) => {
-          return idPromise.then(_id => {
-            done(null, _id);
-          });
-        }))(id);
-      }
-
       if (format === 'raw') {
-        return id;
+        return Promise.resolve(id);
       } else {
-        return intFormat(id, format);
+        return Promise.resolve(intFormat(id, format));
       }
     }
   };
@@ -188,8 +177,8 @@ Speck.prototype.initCoordination = function (CoordinatorInstance) {
   } else if (typeof this.options.machineId !== 'undefined') {
     this.machineId = (this.options.machineId & this.fieldBitMasks.m);
   } else if (typeof this.options.datacenterId !== 'undefined' || typeof this.options.workerId !== 'undefined') {
-    var datacenterId = (typeof this.options.datacenterId !== 'undefined') ? (this.options.datacenterId & this.fieldBitMasks.dc) : 0;
-    var workerId = (typeof this.options.workerId !== 'undefined') ? (this.options.workerId & this.fieldBitMasks.w) : 0;
+    let datacenterId = (typeof this.options.datacenterId !== 'undefined') ? (this.options.datacenterId & this.fieldBitMasks.dc) : 0;
+    let workerId = (typeof this.options.workerId !== 'undefined') ? (this.options.workerId & this.fieldBitMasks.w) : 0;
     this.machineId = (datacenterId << this.fieldBits.w) | workerId;
   } else {
     this.machineId = 0;
