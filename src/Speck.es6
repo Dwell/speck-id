@@ -3,6 +3,7 @@ import mapValues from 'lodash.mapvalues';
 import zip from 'lodash.zip';
 import Promise from 'any-promise';
 import intFormat from 'biguint-format';
+import deasync from 'deasync';
 
 const Speck = function (options) {
   this.machineId = null;
@@ -103,7 +104,24 @@ const Speck = function (options) {
     next: () => { // async Promise ID generation
       return Promise.resolve(itr());
     },
-    generate: (format = 'dec') => { // async formatted ID generation
+    generate: (format = 'dec') => { // sync formatted ID generation
+      let id = itr();
+
+      if (Promise.resolve(id) == id) { // it's a Promise, deasync it
+        id = (deasync((idPromise, done) => {
+          return idPromise.then(_id => {
+            done(null, _id)
+          })
+        }))(id)
+      }
+
+      if (format === 'raw') {
+        return id;
+      } else {
+        return intFormat(id, format);
+      }
+    },
+    generateAsync: (format = 'dec') => { // async formatted ID generation
       let id = itr();
 
       if (format === 'raw') {

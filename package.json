@@ -1,6 +1,6 @@
 {
   "name": "speck-id",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "distributed id generator",
   "main": "dist/index.js",
   "scripts": {
@@ -25,6 +25,7 @@
     "babel-runtime": "^6.11.6",
     "biguint-format": "^1.0.0",
     "bluebird": "^3.5.1",
+    "deasync": "^0.1.10",
     "lodash.defaults": "^4.2.0",
     "lodash.mapvalues": "^4.6.0",
     "lodash.zip": "^4.2.0",
