@@ -170,12 +170,12 @@ Speck.prototype.buildId = function(time, sequence, totalBytes) {
       if (leftoverBits) {
         bitsNeeded = 8 - leftoverBits;
         bitsNeededMask = Math.pow(2, bitsNeeded) - 1;
-        byteValue = ((fieldValue & bitsNeededMask) << leftoverBits) | leftoverFieldValue;
-        fieldValue = Math.floor(fieldValue / (1 << bitsNeeded));
+        byteValue = ((fieldValue & bitsNeededMask) << leftoverBits) + leftoverFieldValue;
+        fieldValue = Math.floor(fieldValue / (1 << bitsNeeded)) + (byteValue >> 8);
         bits -= bitsNeeded;
         leftoverFieldValue = 0;
         leftoverBits = 0;
-        id.writeUInt8(byteValue, byteOffset--);
+        id.writeUInt8(byteValue & 0xFF, byteOffset--);
       } else {
         id.writeUInt8(fieldValue & 0xFF, byteOffset--);
         fieldValue = Math.floor(fieldValue / (1 << 8));
